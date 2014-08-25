@@ -1,4 +1,6 @@
-all: Stream.dll tests/TestClient.exe
+TARGETS = Stream.dll tests/TestClient.exe
+
+all: ${TARGETS}
 
 %.dll: %.cs
 	mcs -t:library $<
@@ -8,5 +10,8 @@ all: Stream.dll tests/TestClient.exe
 
 test: all
 	MONO_PATH=. mono tests/TestClient.exe
+
+clean:
+	rm -f ${TARGETS}
 	
 .PHONY: all
