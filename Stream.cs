@@ -6,11 +6,16 @@ using System.Text;
 
 namespace Aseba
 {
-	//! Implement a Dashel/Aseba client stream 
+	// The deletage to process Aseba messages
+	public delegate void ProcessMessage(ushort len, ushort source, ushort type, byte[] payload);
+	
+	// Implement a Dashel/Aseba client stream 
 	public class Stream
 	{
 		// Socket this stream is connected to
 		protected Socket socket;
+		// The delegate to process message callback
+		public ProcessMessage messageCallback;
 
 		// Receive count bytes from a socket
 		protected byte[] ReceiveAll(int count)
@@ -48,8 +53,13 @@ namespace Aseba
 		// Create the stream
 		public Stream(String host = "", ushort port = 33333)
 		{
+			// setup default delegates
+			messageCallback = DefaultMessageCallback;
+
+			// make sure we have a valid hostname
 			if (String.IsNullOrEmpty(host))
 				host = Dns.GetHostName();
+
 			// Connect to a remote device.
 			// Establish the remote endpoint for the socket.
 			// This example uses port 33333 on the local computer.
@@ -89,15 +99,15 @@ namespace Aseba
 					ushort source = ReceiveUInt16LE();
 					ushort type = ReceiveUInt16LE();
 					byte[] payload = ReceiveAll(len);
-					ProcessMessage(len, source, type, payload);
+					messageCallback(len, source, type, payload);
 				}
 			}
 		}
 
 		// To be overridden by children
-		public void ProcessMessage(ushort len, ushort source, ushort type, byte[] payload)
+		public void DefaultMessageCallback(ushort len, ushort source, ushort type, byte[] payload)
 		{
-			Console.WriteLine(String.Format("Received message from {0} of type 0x{1:X4}, size {2} : {3}", source, type, len, String.Join(", ", payload)));
+			Console.WriteLine(String.Format("Received message from {0} of type 0x{1:X4}, size {2} : {3}", source, type, len, String.Join(", ", Array.ConvertAll<byte, string>(payload, Convert.ToString))));
 		}
 
 	} // class Stream

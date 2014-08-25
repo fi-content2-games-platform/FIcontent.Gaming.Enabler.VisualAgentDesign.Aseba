@@ -12,7 +12,6 @@ public class TestClient
 			stream.Step();
 			Thread.Sleep(100);
 		}
-		stream.Disconnect();
-		return 0;
+		//return 0;
 	}
 }
