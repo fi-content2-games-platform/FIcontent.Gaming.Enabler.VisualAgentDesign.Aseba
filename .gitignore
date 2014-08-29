@@ -1,3 +1,5 @@
 *.dll
 *.exe
 *.swp
+# for Unity when used as a git submodule
+*.meta
