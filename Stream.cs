@@ -8,6 +8,8 @@ namespace Aseba
 {
 	// The deletage to process Aseba messages
 	public delegate void ProcessMessage(ushort len, ushort source, ushort type, byte[] payload);
+	// The delegate to notify a disconnection
+	public delegate void Disconnected();
 	
 	// Implement a Dashel/Aseba client stream 
 	public class Stream
@@ -16,6 +18,8 @@ namespace Aseba
 		protected Socket socket = null;
 		// The delegate to process message callback
 		public ProcessMessage messageCallback;
+		// The delegate to process disconnection
+		public Disconnected disconnectionCallback;
 
 		// Receive count bytes from a socket
 		protected byte[] ReceiveAll(int count)
@@ -57,6 +61,7 @@ namespace Aseba
 		{
 			// setup default delegates
 			messageCallback = DefaultMessageCallback;
+			disconnectionCallback = DefaultDisconnectionCallback;
 		}
 		
 		// Attempt to connect to the target, throw a SocketException if connection fails
@@ -143,6 +148,12 @@ namespace Aseba
 		public void DefaultMessageCallback(ushort len, ushort source, ushort type, byte[] payload)
 		{
 			Console.WriteLine(String.Format("Received message from {0} of type 0x{1:X4}, size {2} : {3}", source, type, len, String.Join(", ", Array.ConvertAll<byte, string>(payload, Convert.ToString))));
+		}
+		
+		// To be overridden by children
+		public void DefaultDisconnectionCallback()
+		{
+			Console.WriteLine("Network disconnected");
 		}
 
 	} // class Stream
