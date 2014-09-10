@@ -26,6 +26,8 @@ namespace Aseba
 			while (left > 0)
 			{
 				int recvCount = socket.Receive(buffer,done,left,SocketFlags.None);
+				if (recvCount == 0)
+					throw new SocketException();
 				done += recvCount;
 				left -= recvCount;
 			}
@@ -62,7 +64,7 @@ namespace Aseba
 		{
 			// Create a TCP/IP  socket.
 			socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-			socket.ReceiveTimeout = 1000; // FIXME: this does not seem to fix the blocking receive
+			socket.ReceiveTimeout = 1000;
 			
 			// make sure we have a valid hostname
 			if (String.IsNullOrEmpty(host))
