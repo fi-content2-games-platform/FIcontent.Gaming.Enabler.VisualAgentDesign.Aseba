@@ -13,7 +13,7 @@ namespace Aseba
 	public class Stream
 	{
 		// Socket this stream is connected to
-		protected Socket socket;
+		protected Socket socket = null;
 		// The delegate to process message callback
 		public ProcessMessage messageCallback;
 
@@ -51,56 +51,89 @@ namespace Aseba
 		}
 
 		// Create the stream
-		public Stream(String host = "", ushort port = 33333)
+		public Stream()
 		{
 			// setup default delegates
 			messageCallback = DefaultMessageCallback;
-
+		}
+		
+		// Attempt to connect to the target, throw a SocketException if connection fails
+		public void Connect(String host = "", ushort port = 33333)
+		{
+			// Create a TCP/IP  socket.
+			socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+			socket.ReceiveTimeout = 1000; // FIXME: this does not seem to fix the blocking receive
+			
 			// make sure we have a valid hostname
 			if (String.IsNullOrEmpty(host))
 				host = Dns.GetHostName();
-
-			// Connect to a remote device.
-			// Establish the remote endpoint for the socket.
-			// This example uses port 33333 on the local computer.
-			IPHostEntry ipHostInfo = Dns.GetHostEntry(host);
-			IPAddress ipAddress = ipHostInfo.AddressList[0];
-			IPEndPoint remoteEP = new IPEndPoint(ipAddress,port);
-
-			// Create a TCP/IP  socket.
-			socket = new Socket(AddressFamily.InterNetwork, 
-					SocketType.Stream, ProtocolType.Tcp );
-
-			// Connect the socket to the remote endpoint. Catch any errors.
-			socket.Connect(remoteEP);
-			Console.WriteLine("Socket connected to {0}", socket.RemoteEndPoint.ToString());
+			
+			try
+			{
+				// Connect the socket to the remote endpoint. Through further any errors.
+				socket.Connect(host, port);
+				Console.WriteLine("Socket connected to {0}", socket.RemoteEndPoint.ToString());
+			}
+			catch (SocketException)
+			{
+				socket = null;
+			}
+		}
+		
+		// Return whether we are connected
+		public bool Connected
+		{
+			get
+			{
+				if (socket != null)
+					return socket.Connected;
+				else
+					return false;
+			}
 		}
 
 		// Terminate connection
 		public void Disconnect()
 		{
-			// Release the socket.
-			socket.Shutdown(SocketShutdown.Both);
-			socket.Close();
+			try
+			{
+				if (socket != null && socket.Connected)
+				{
+					// Release the socket.
+					socket.Shutdown(SocketShutdown.Both);
+					socket.Close();
+				}
+			}
+			catch (SocketException)
+			{
+				socket = null;
+			}
 		}
 
 		// Check for data on the network
 		public void Step()
 		{
-			// note: the connected status is only updated on read, so most likely this program will not realise the server disconnected
-			if (socket.Connected)
+			try
 			{
-				// look if there is some pending data
-				bool isData = socket.Poll(0,SelectMode.SelectRead);
-				if (isData)
+				// note: the connected status is only updated on read, so most likely this program will not realise the server disconnected
+				if (socket != null && socket.Connected)
 				{
-					// receive an Aseba message
-					ushort len = ReceiveUInt16LE();
-					ushort source = ReceiveUInt16LE();
-					ushort type = ReceiveUInt16LE();
-					byte[] payload = ReceiveAll(len);
-					messageCallback(len, source, type, payload);
+					// look if there is some pending data
+					bool isData = socket.Poll(0,SelectMode.SelectRead);
+					if (isData)
+					{
+						// receive an Aseba message
+						ushort len = ReceiveUInt16LE();
+						ushort source = ReceiveUInt16LE();
+						ushort type = ReceiveUInt16LE();
+						byte[] payload = ReceiveAll(len);
+						messageCallback(len, source, type, payload);
+					}
 				}
+			}
+			catch (SocketException)
+			{
+				socket = null;
 			}
 		}
 

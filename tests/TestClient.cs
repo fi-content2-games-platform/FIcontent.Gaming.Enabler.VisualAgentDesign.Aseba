@@ -6,7 +6,8 @@ public class TestClient
 {
 	public static int Main(String[] args)
 	{
-		Stream stream = new Stream("localhost");
+		Stream stream = new Stream();
+		stream.Connect("localhost");
 		while (true)
 		{
 			stream.Step();
