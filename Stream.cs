@@ -21,6 +21,8 @@ namespace Aseba
 		// The delegate to process disconnection
 		public Disconnected disconnectionCallback;
 
+		// low-level receive
+		
 		// Receive count bytes from a socket
 		protected byte[] ReceiveAll(int count)
 		{
@@ -54,6 +56,32 @@ namespace Aseba
 			for (int i=0; i<len; ++i)
 				array[i] = ReceiveUInt16LE();
 			return array;
+		}
+		
+		// low-level send
+		
+		// Send an array fully to the socket
+		protected void SendAll(byte[] buffer)
+		{
+			int done = 0;
+			int left = buffer.Length;
+			while (left > 0)
+			{
+				int sentCount = socket.Send(buffer,done,left,SocketFlags.None);
+				if (sentCount == 0)
+					throw new SocketException();
+				done += sentCount;
+				left -= sentCount;
+			}
+		}
+		
+		// Send a UInt16 to the socket
+		protected void SendUInt16LE(ushort value)
+		{
+			byte[] buffer = BitConverter.GetBytes(value);
+			if (!BitConverter.IsLittleEndian)
+				Array.Reverse(buffer); 
+			SendAll(buffer);
 		}
 
 		// Create the stream
@@ -142,6 +170,16 @@ namespace Aseba
 			{
 				socket = null;
 			}
+		}
+		
+		// Send an Aseba message to the network
+		public void SendAsebaMessage(ushort source, ushort type, ushort[] payload)
+		{
+			SendUInt16LE((ushort)(payload.Length * 2));
+			SendUInt16LE(source);
+			SendUInt16LE(type);
+			for (var i = 0; i < payload.Length; ++i)
+				SendUInt16LE(payload[i]);
 		}
 
 		// To be overridden by children
